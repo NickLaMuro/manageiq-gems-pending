@@ -1,3 +1,4 @@
+require 'net/protocol' # for DEFAULT_CHUNKSIZE constant
 require 'util/miq_file_storage'
 
 class MiqObjectStorage < MiqFileStorage::Interface
@@ -8,6 +9,8 @@ class MiqObjectStorage < MiqFileStorage::Interface
   attr_accessor :settings
   attr_writer   :logger
 
+  DEFAULT_CHUNKSIZE = Net::BufferedIO::BUFSIZE
+
   def initialize(settings)
     raise "URI missing" unless settings.key?(:uri)
     @settings = settings.dup
@@ -15,5 +18,31 @@ class MiqObjectStorage < MiqFileStorage::Interface
 
   def logger
     @logger ||= $log.nil? ? :: Logger.new(STDOUT) : $log
+  end
+
+  private
+
+  DONE_READING = "".freeze
+  def read_single_chunk(chunksize = DEFAULT_CHUNKSIZE)
+    @buf_left ||= byte_count
+    return DONE_READING unless @buf_left.positive?
+
+    cur_readsize  = @buf_left - chunksize >= 0 ? chunksize : @buf_left
+    buf           = source_input.read(cur_readsize)
+    @buf_left    -= chunksize
+    buf.to_s
+  end
+
+  def write_single_split_file_for(file_io)
+    loop do
+      input_data = read_single_chunk
+      break if input_data.empty?
+      file_io.write(input_data)
+    end
+    clear_split_vars
+  end
+
+  def clear_split_vars
+    @buf_left = nil
   end
 end
