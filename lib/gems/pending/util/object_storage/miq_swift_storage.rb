@@ -43,7 +43,10 @@ class MiqSwiftStorage < MiqObjectStorage
     #
     logger.debug("Writing [#{source_input}] to Bucket [#{@container_name}] using object file name [#{object_file}]")
     begin
-      container.files.create(:key => object_file, :body => source_input)
+      params = { :key => object_file, :body => source_input }
+      params[:request_block] = -> { read_single_chunk } if byte_count
+      container.files.create(params)
+      clear_split_vars
     rescue Excon::Errors::Unauthorized => err
       logger.error("Access to Swift container #{@container_name} failed due to a bad username or password. #{err}")
       msg = "Access to Swift container #{@container_name} failed due to a bad username or password. #{err}"
