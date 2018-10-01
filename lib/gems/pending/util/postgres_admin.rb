@@ -78,14 +78,22 @@ class PostgresAdmin
     FileUtils.rm_rf(PostgresAdmin.data_directory.children.map(&:to_s))
   end
 
-  PG_DUMP_MAGIC = "PGDMP".force_encoding(Encoding::BINARY).freeze
   def self.pg_dump_file?(file)
-    File.open(file, "rb") { |f| f.readpartial(5) } == PG_DUMP_MAGIC
+    if file.kind_of?(PostgresAdminPipeFile)
+      $log.info("MIQ(#{name}.#{__method__}) testing that #{file.inspect}'s magic")
+      file.magic
+    else
+      File.open(file, "rb") { |f| f.readpartial(5) }
+    end == PostgresAdminPipeFile::PG_DUMP_MAGIC
   end
 
-  BASE_BACKUP_MAGIC = "\037\213".force_encoding(Encoding::BINARY).freeze # just the first 2 bits of gzip magic
   def self.base_backup_file?(file)
-    File.open(file, "rb") { |f| f.readpartial(2) } == BASE_BACKUP_MAGIC
+    if file.kind_of?(PostgresAdminPipeFile)
+      $log.info("MIQ(#{name}.#{__method__}) testing that #{file.inspect}'s magic")
+      file.magic
+    else
+      File.open(file, "rb") { |f| f.readpartial(2) }
+    end == PostgresAdminPipeFile::BASE_BACKUP_MAGIC
   end
 
   def self.backup(opts)
@@ -94,6 +102,10 @@ class PostgresAdmin
 
   def self.restore(opts)
     file = opts[:local_file]
+    if !file.kind_of?(PostgresAdminPipeFile) && File.pipe?(file)
+      file = opts[:local_file] = PostgresAdminPipeFile.open("rb")
+    end
+
     if pg_dump_file?(file)
       restore_pg_dump(opts)
     elsif base_backup_file?(file)
@@ -296,4 +308,61 @@ class PostgresAdmin
   ensure
     File.delete(error_path) if File.exist?(error_path)
   end
+end
+
+# Wrapper file IO for pipes that handles magic number reading as well as once
+# the "magic" has been read, it will still be passed on to the other methods
+# like `#read` and `#readpartial`
+class PostgresAdminPipeFile < File
+  
+  PG_DUMP_MAGIC     = "PGDMP".force_encoding(Encoding::BINARY).freeze
+  BASE_BACKUP_MAGIC = "\037\213".force_encoding(Encoding::BINARY).freeze # just the first 2 bits of gzip magic
+
+  def initialize(*args)
+    super
+    @magic, @magic_has_been_read = nil
+  end
+  
+  def magic
+    return @magic if @magic || @magic_has_been_read
+
+    magic = readpartial(2)
+    if magic == BASE_BACKUP_MAGIC
+      @magic = magic
+      return @magic
+    end
+    magic << readpartial(3)
+    @magic = magic
+  end
+
+  [:read, :read_nonblock, :readpartial].each do |read_method|
+    eval <<-READ_METHOD
+      def #{read_method}(len = nil, *other_args)
+        if @magic && !@magic_has_been_read
+          @magic_has_been_read = true
+          @magic + super(len ? len.to_i - @magic.length : len, *other_args)
+        else
+          super
+        end
+      end
+    READ_METHOD
+  end
+
+  # def read(maxlen = nil, outbuf = nil)
+  #   if @magic && !@magic_has_been_read
+  #     @magic_has_been_read = true
+  #     @magic + super(maxlen ? maxlen.to_i - @magic.length : maxlen, outbuf)
+  #   else
+  #     super
+  #   end
+  # end
+
+  # def readpartial(maxlen = nil, outbuf = nil)
+  #   if @magic && !@magic_has_been_read
+  #     @magic_has_been_read = true
+  #     @magic + super(maxlen ? maxlen.to_i - @magic.length : maxlen, outbuf)
+  #   else
+  #     super
+  #   end
+  # end
 end

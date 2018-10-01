@@ -300,7 +300,9 @@ class MiqGenericMountSession < MiqFileStorage::Interface
         return
       end
 
-      logger.info("#{log_header} Copying file [#{relpath}] to [#{local_file}]...")
+      logger.info("#{log_header} Copying file [#{relpath}] to [#{local_file.path}]...")
+      logger.info("#{log_header}   >>>>> local_file.open? #{!local_file.closed?}")
+      logger.info("#{log_header}   >>>>> local_file.pipe? #{File.pipe? local_file.path}")
       IO.copy_stream(relpath, local_file)
       logger.info("#{log_header} Copying file [#{relpath}] to [#{local_file}] complete")
     rescue => err

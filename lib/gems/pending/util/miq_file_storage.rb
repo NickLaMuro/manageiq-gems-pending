@@ -143,7 +143,6 @@ class MiqFileStorage
       if block_given?
         thread = handle_io_block(&block)
         download_single(remote_file_uri, input_writer)
-        input_writer.close
         thread.join
       else
         download_single(remote_file_uri, local_file)
@@ -231,6 +230,8 @@ class MiqFileStorage
         Thread.new do
           begin
             yield fifo_path      # send the path to the block to get executed
+          rescue => e
+            puts "error in handle_io_block: #{e.message}"
           ensure
             @input_writer.close  # close the file so we know we hit EOF (for #add)
           end
