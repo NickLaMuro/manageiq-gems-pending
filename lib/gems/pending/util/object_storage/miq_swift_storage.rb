@@ -58,7 +58,7 @@ class MiqSwiftStorage < MiqObjectStorage
     end
   end
 
-  def mkdir
+  def mkdir(_dir)
     container
   end
 
@@ -74,13 +74,11 @@ class MiqSwiftStorage < MiqObjectStorage
                        logger.debug("Swift container [#{container}] created")
                        container
                      rescue => err
-                       disconnect
                        logger.error("Error creating Swift container #{container_name}. #{err}")
                        msg = "Error creating Swift container #{container_name}. #{err}"
                        raise err, msg, err.backtrace
                      end
                    rescue => err
-                     disconnect
                      logger.error("Error getting Swift container #{container_name}. #{err}")
                      msg = "Error getting Swift container #{container_name}. #{err}"
                      raise err, msg, err.backtrace
@@ -106,12 +104,10 @@ class MiqSwiftStorage < MiqObjectStorage
     begin
       @swift ||= @osh.swift_service
     rescue Excon::Errors::Unauthorized => err
-      disconnect
       logger.error("Access to Swift host #{@host} failed due to a bad username or password. #{err}")
       msg = "Access to Swift host #{@host} failed due to a bad username or password. #{err}"
       raise err, msg, err.backtrace
     rescue => err
-      disconnect
       logger.error("Error connecting to Swift host #{@host}. #{err}")
       msg = "Error connecting to Swift host #{@host}. #{err}"
       raise err, msg, err.backtrace
@@ -119,19 +115,7 @@ class MiqSwiftStorage < MiqObjectStorage
   end
 
   def query_params(query_string)
-    return unless query_string.kind_of?(String)
-    query_string.split('&').each do |query|
-      query_parts = query.split('=')
-      case query_parts[0]
-      when 'region'
-        @region = query_parts[1]
-      when 'api_version'
-        @api_version = query_parts[1]
-      when 'domain_id'
-        @domain_id = query_parts[1]
-      when 'security_protocol'
-        @security_protocol = query_parts[1]
-      end
-    end
+    parts = URI.decode_www_form(query_string).to_h
+    @region, @api_version, @domain_id, @security_protocol = parts.values_at("region", "api_version", "domain_id", "security_protocol")
   end
 end
