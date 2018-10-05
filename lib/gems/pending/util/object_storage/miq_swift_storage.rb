@@ -85,14 +85,8 @@ class MiqSwiftStorage < MiqObjectStorage
   def swift
     return @swift if @swift
     require 'manageiq/providers/openstack/legacy/openstack_handle'
-    extra_options = {
-      :ssl_ca_file    => ::Settings.ssl.ssl_ca_file,
-      :ssl_ca_path    => ::Settings.ssl.ssl_ca_path,
-      :ssl_cert_store => OpenSSL::X509::Store.new
-    }
+    extra_options = {}
     extra_options[:domain_id] = @domain_id
-    extra_options[:omit_default_port] = ::Settings.ems.ems_openstack.excon.omit_default_port
-    extra_options[:read_timeout]      = ::Settings.ems.ems_openstack.excon.read_timeout
     extra_options[:service] = "Compute"
 
     @osh ||= OpenstackHandle::Handle.new(@username, @password, @host, @port, @api_version, @security_protocol, extra_options)
