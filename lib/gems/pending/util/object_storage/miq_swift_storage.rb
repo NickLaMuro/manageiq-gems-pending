@@ -1,3 +1,4 @@
+require 'pp'
 require 'util/mount/miq_generic_mount_session'
 
 class MiqSwiftStorage < MiqObjectStorage
