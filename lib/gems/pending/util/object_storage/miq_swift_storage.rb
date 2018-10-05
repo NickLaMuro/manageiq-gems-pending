@@ -17,6 +17,7 @@ class MiqSwiftStorage < MiqObjectStorage
     raise "username and password are required values!" if @settings[:username].nil? || @settings[:password].nil?
     _scheme, _userinfo, @host, @port, _registry, @mount_path, _opaque, query, _fragment = URI.split(URI.encode(@settings[:uri]))
     query_params(query)
+    @swift          = nil
     @username       = @settings[:username]
     @password       = @settings[:password]
     @container_name = @mount_path[0] == File::Separator ? @mount_path[1..-1] : @mount_path
@@ -82,6 +83,7 @@ class MiqSwiftStorage < MiqObjectStorage
   private
 
   def swift
+    return @swift if @swift
     require 'manageiq/providers/openstack/legacy/openstack_handle'
     extra_options = {
       :ssl_ca_file    => ::Settings.ssl.ssl_ca_file,
