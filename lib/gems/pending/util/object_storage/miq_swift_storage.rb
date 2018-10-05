@@ -64,20 +64,13 @@ class MiqSwiftStorage < MiqObjectStorage
 
   def container
     @container ||= begin
-                     container = swift.directories.get(container_name)
-                     logger.debug("Swift container [#{container}] found")
+                     container   = swift.directories.get(container_name)
+                     logger.debug("Swift container [#{container}] found") if container
+                     container ||= create_container
                      container
                    rescue Fog::Storage::OpenStack::NotFound
                      logger.debug("Swift container #{container_name} does not exist.  Creating.")
-                     begin
-                       container = swift.directories.create(:key => container_name)
-                       logger.debug("Swift container [#{container}] created")
-                       container
-                     rescue => err
-                       logger.error("Error creating Swift container #{container_name}. #{err}")
-                       msg = "Error creating Swift container #{container_name}. #{err}"
-                       raise err, msg, err.backtrace
-                     end
+                     create_container
                    rescue => err
                      logger.error("Error getting Swift container #{container_name}. #{err}")
                      msg = "Error getting Swift container #{container_name}. #{err}"
@@ -112,6 +105,16 @@ class MiqSwiftStorage < MiqObjectStorage
       msg = "Error connecting to Swift host #{@host}. #{err}"
       raise err, msg, err.backtrace
     end
+  end
+
+  def create_container
+    container = swift.directories.create(:key => container_name)
+    logger.debug("Swift container [#{container}] created")
+    container
+  rescue => err
+    logger.error("Error creating Swift container #{container_name}. #{err}")
+    msg = "Error creating Swift container #{container_name}. #{err}"
+    raise err, msg, err.backtrace
   end
 
   def query_params(query_string)
