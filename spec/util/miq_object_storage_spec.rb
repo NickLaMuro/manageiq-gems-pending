@@ -59,6 +59,18 @@ describe MiqObjectStorage do
         expect(File.size(last_split)).to eq(1.megabyte - 1.kilobyte)
       end
     end
+
+    context "non-split files (byte_count == nil)" do
+      subject          { MockLocalFileStorage.new source_path, byte_count }
+
+      let(:byte_count) { nil }
+
+      it "streams the whole file over" do
+        subject.send(:write_single_split_file_for, File.open(dest_path, "wb"))
+        expect(File.exist?(dest_path)).to be true
+        expect(Pathname.new(dest_path).lstat.size).to eq(tmpfile_size)
+      end
+    end
   end
 
   describe "#read_single_chunk (private)" do
