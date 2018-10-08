@@ -49,8 +49,8 @@ class MiqSwiftStorage < MiqObjectStorage
       params     = {
         :expects       => [201, 202],
         :headers       => {},
-        :request_block => -> { read_single_chunk }
-        :idempotent    => false
+        :request_block => -> { read_single_chunk },
+        :idempotent    => false,
         :method        => "PUT",
         :path          => "#{Fog::OpenStack.escape(swift_file.directory.key)}/#{Fog::OpenStack.escape(swift_file.key)}"
       }
