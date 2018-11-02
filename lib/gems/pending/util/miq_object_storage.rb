@@ -45,6 +45,17 @@ class MiqObjectStorage < MiqFileStorage::Interface
     clear_split_vars
   end
 
+  def write_chunk_proc(destination)
+    # We use a Proc.new here instead of `lambda` because we are only concerned
+    # about the first argument, and other arguments (additional ones added by
+    # Excon's response_call signature, for example) are unneeded.
+    #
+    # `lambda do` will do argument checking, while `Proc.new do` won't.
+    Proc.new do |chunk|
+      destination.write(chunk.force_encoding(destination.external_encoding))
+    end
+  end
+
   def clear_split_vars
     @buf_left = nil
   end
