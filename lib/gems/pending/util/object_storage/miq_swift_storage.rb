@@ -21,7 +21,7 @@ class MiqSwiftStorage < MiqObjectStorage
     @swift          = nil
     @username       = @settings[:username]
     @password       = @settings[:password]
-    @container_name = @mount_path[0] == File::Separator ? @mount_path[1..-1] : @mount_path
+    @container_name = (@mount_path[0] == "/" ? @mount_path[1..-1] : @mount_path).split("/").first
   end
 
   def uri_to_object_path(remote_file)
