@@ -20,8 +20,8 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = "> 2.4"
 
-  s.add_runtime_dependency "activerecord",            "~> 6.0"
-  s.add_runtime_dependency "activesupport",           "~> 6.0"
+  s.add_runtime_dependency "activerecord",            '6.0.0.alpha'
+  s.add_runtime_dependency "activesupport",           '6.0.0.alpha'
   s.add_runtime_dependency "awesome_spawn",           "~> 1.5"
   s.add_runtime_dependency "aws-sdk-s3",              "~> 1.0"
   s.add_runtime_dependency "binary_struct",           "~> 2.1"
